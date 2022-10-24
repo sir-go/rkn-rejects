@@ -1,47 +1,105 @@
-## DNS/DPI sniffers and NFT-tables rules
-
-The parental control project contains four utilities to get white and black lists from RKN service and 
-completely isolate one certain host from denied resources. Utilities installed at the router between
-the host and uplink.
-
-### Utilities
-
-#### [get_rkn](cmd/get_rkn/README.md)
-
-SOAP-client for [RKN service](https://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl), 
-gets b/w lists, parses them and fills the redis cache.
-
+## get_rkn
+  
 [CryptoPRO](https://www.cryptopro.ru/products/csp/downloads) for sign requests is required.
 
-Also its demands some SSH tuning `.ssh/config`
-
+SSH tuning `.ssh/config`
 ```
 KexAlgorithms +diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
 ```
+### What it does
+ - check versions of the service, dump and documentation
+ - generate XML request, sign it and send to the service
+ - get the request UUID and wait the result
+ - download the dump, unpack and smart parse it
+ - include own denied lists
+ - fill the redis DB
+ - generate and run script for configuring the firewall
 
-##### get_rkn | flags
+### Build
+```bash
+go mod download
+go build -o get_rkn rkn-rejects/cmd/get_rkn;
+```
+
+### Flags
+
 `-c <config file path>` - path to `*.toml` config file
 
-#### dns-sniffer
+### Config
+```toml
+log_level = "debug"
 
-Watches all DNS traffic, collects A-records, and checks resolved hosts by b/w lists.
+[actual_versions]                       # actual RKN service versions
+    service = "3.2"                     # SOAP service
+    dump    = "2.4"                     # register dump
+    doc     = "4.12"                    # version of the documentation
 
-If the record in the answer is not denied then it puts to the white IP list with resolved TTL.
+[web]                                   # SOAP service params
+    soap_url    = "https://.../?wsdl"   # WSDL URL
+    doc_url     = "https://.../.pdf"    # documentation URL
+    tcp_timeout = "30s"                 # TCP timeout
+    attempts    = 5                     # amount of connection attempts
 
-#### dpi-sniffer
+[req]                                   # request's prarmeters
+    file = "/tmp/req.xml"               # where to save temp. request file 
+    [req.operator]
+        name    = 'company-name'        # company name
+        inn     = "company-inn"         # company TIN
+        ogrn    = "company-ogrn"        # company PSRN
+        email   = "company@email.com"   # company registered e-mail
 
-Sniffs all traffic and for denied IP or hostname detection.
+[sign]                                  # digital signature 
+    file = "/tmp/req.xml.signed"        # where to save temp. sign file
+    script = "/opt/rkn/sign.sh"         # path to the signing script
 
-#### check
+[res]                                   # getting req. result params
+## optional, dump will be 
+## saved to file if it set
+#    dump_to = "/tmp/dump.zip"          # where to save dump file if needed
+    attempts            = 30            # amount of attemps to get the result
+    retry_timeout       = "15s"         # timeout for each try
+    download_timeout    = "10m"         # duration of waiting
 
-The testing tool for regularly checking the quality of other parts working. It gets the 
-accessibility of hosts by their list in Redis, runs goroutines with HTTP-clients, and collects status codes.
+[parse]                                 # dump parsing params
+## optional, the parser will read this 
+## file if it set instead of memory
+#    from_dump = "/tmp/dump.zip"        # downloaded dump instead of getting the new one
+    progress_poll_timeout = "1s"        # parsing goroutine polling timeout
 
-It can be run from the docker container for routing all traffic through the router's firewall.
+    [parse.bogus_ip]                    # some CIDRs in the dump are bogus or too wide
+        subnets = [                     # array of private CIDRs 
+            "0.0.0.0/8",      
+            "10.0.0.0/8",     
+            "14.0.0.0/8",     
+            "169.254.0.0/16", 
+            "127.0.0.0/8",    
+            "192.168.0.0/16", 
+            "172.16.0.0/12",  
+            "192.0.2.0/24",   
+            "224.0.0.0/3",    
+        ]
+        min_mask = 10                   # minimal subnet mask (too wide rejects prevention)
 
-### NF-tables
+    [parse.redis]                       # redis cache connection params
+        host            = "localhost"   # redis host
+        port            = 6379          # TCP port
+        db              = 0             # num of DB
+        chunk_size      = 1000          # inserted data chunk size
+        workers         = 16            # amount of inserters
+        timeout_conn    = "15s"         # connection timeout
+        timeout_read    = "15s"         # read processes timeout
 
-Traffic to sniffers redirects by the `nf_queue` kernel module. All traffic rejects by default 
-except DNS requests and answers. NF-tables rules have a list of allowed IP addresses. 
-Every record in the list has a TTL and deletes when this time is expired.
-Also, there are the lists filled manually and imported to the rules.
+[lists]                                             # custom lists
+    black_domains   = "wb_lists/b_domains.yml"      # path to the own denied domains list
+    white_domains   = "wb_lists/w_domains.yml"      # path to the own allowed domains list
+
+[fw]                                                # firewall params
+    ip_deny_file = "/etc/nftables.d/deny_rkn.nft"   # path to save parsed addresses
+    ip_deny_table = "rkn"                           # nftables table name
+    ip_deny_set = "deny_rkn"                        # nftables denied addresses set name
+```
+
+### Run
+```bash
+./get_rkn -c rkn.toml
+```

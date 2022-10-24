@@ -87,9 +87,9 @@ func initConfig() *Cfg {
 		"nf mark done")
 	flag.IntVar(&cfg.MarkBad, "mbad", 3,
 		"nf mark bad")
-	flag.StringVar(&queuesStr, "q", "200-203",
+	flag.StringVar(&queuesStr, "nfq", "200-203",
 		"queues range")
-	flag.Uint64Var(&qMaxLen, "ql", 0xFF,
+	flag.Uint64Var(&qMaxLen, "nfql", 0xFF,
 		"max queue length")
 	flag.StringVar(&cfg.Redis.Host, "rh", "localhost",
 		"redis host")
@@ -112,7 +112,6 @@ func initConfig() *Cfg {
 		"log level [panic < fatal < error < warn < info < debug < trace]")
 	flag.BoolVar(&cfg.Dry, "dry", false,
 		"just pretty print config")
-	flag.BoolVar(&cfg.RejectAll, "x", false, "reject all traffic (for debug only)")
 	flag.Parse()
 
 	parseRange(queuesStr, &cfg.Queues)

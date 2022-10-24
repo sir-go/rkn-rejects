@@ -15,7 +15,7 @@ func regQ(q uint16, rc *redis.Client) {
 	config := nfqueue.Config{
 		NfQueue:      q,
 		MaxPacketLen: 0xFFFF,
-		MaxQueueLen:  0xFF,
+		MaxQueueLen:  CFG.QMaxLen,
 		Copymode:     nfqueue.NfQnlCopyPacket,
 		WriteTimeout: 50 * time.Millisecond,
 	}

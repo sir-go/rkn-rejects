@@ -64,10 +64,10 @@ func initConfig() *Cfg {
 		"redis set key for checks")
 
 	flag.DurationVar(&cfg.Redis.TimeoutConn, "rtc", time.Second*15,
-		"radius connection timeout")
+		"radis connection timeout")
 
 	flag.DurationVar(&cfg.Redis.TimeoutRead, "rtr", time.Second*15,
-		"radius read timeout")
+		"radis read timeout")
 
 	flag.StringVar(&cfg.LogLevel, "log", "info",
 		"log level [panic < fatal < error < warn < info < debug < trace]")
