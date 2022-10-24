@@ -1,0 +1,69 @@
+# panic < fatal < error < warn < info < debug < trace
+log_level = "debug"
+
+[actual_versions]
+    service = "3.2"
+    dump    = "2.4"
+    doc     = "4.12"
+
+[web]
+    soap_url    = "https://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl"
+    doc_url     = "https://vigruzki.rkn.gov.ru/docs/description_for_operators_actual.pdf"
+    tcp_timeout = "30s"
+    attempts    = 5
+
+[req]
+    file = "/tmp/req.xml"
+    [req.operator]
+        name    = 'ООО "Телетайм"'
+        inn     = "2321014898"
+        ogrn    = "1062321001236"
+        email   = "teletime@tih.ru"
+
+[sign]
+    file = "/tmp/req.xml.signed"
+    script = "/opt/rkn/sign.sh"
+
+[res]
+## optional, dump will be saved to file if it set
+#    dump_to = "/data/dump.zip"
+    attempts            = 30
+    retry_timeout       = "15s"
+    download_timeout    = "10m"
+
+[parse]
+## optional, the parser will read this file if it set insted of memory
+#    from_dump = "/data/dump.zip"
+    progress_poll_timeout = "1s"
+
+    [parse.bogus_ip]
+        subnets = [
+            "0.0.0.0/8",      # 0.0.0.0     - 0.255.255.255
+            "10.0.0.0/8",     # 10.0.0.0    - 10.255.255.255
+            "14.0.0.0/8",     # 14.0.0.0    - 10.255.255.255
+            "169.254.0.0/16", # 169.254.0.0 - 169.254.255.255
+            "127.0.0.0/8",    # 127.0.0.0   - 127.255.255.255
+            "192.168.0.0/16", # 192.168.0.0 - 192.168.255.255
+            "172.16.0.0/12",  # 172.16.0.0  - 172.31.255.255
+            "192.0.2.0/24",   # 192.0.2.0   - 192.0.2.255
+            "224.0.0.0/3",    # 224.0.0.0   - 255.255.255.255
+        ]
+        min_mask = 10
+
+    [parse.redis]
+        host            = "localhost"
+        port            = 6379
+        db              = 0
+        chunk_size      = 1000
+        workers         = 16
+        timeout_conn    = "15s"
+        timeout_read    = "15s"
+
+[lists]
+    black_domains   = "/opt/rkn/wb_lists/b_domains.yml"
+    white_domains   = "/opt/rkn/wb_lists/w_domains.yml"
+
+[fw]
+    ip_deny_file = "/etc/nftables.d/deny_rkn.nft"
+    ip_deny_table = "rkn"
+    ip_deny_set = "deny_rkn"

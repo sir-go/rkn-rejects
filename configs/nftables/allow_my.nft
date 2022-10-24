@@ -1,0 +1,5 @@
+add element rkn allow_my {
+    172.17.0.1              comment "gateway",
+    192.168.28.0/24         comment "tih",
+    185.46.16.0/22          comment "ttnet",
+}

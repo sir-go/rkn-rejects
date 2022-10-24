@@ -1,0 +1,31 @@
+table rkn {
+    set allow_sniffed {type ipv4_addr; flags timeout;}          # by dns-sniffer tool
+    set allow_my {type ipv4_addr; flags interval; auto-merge}   # allow_my.nft
+    set allow_rkn {type ipv4_addr; flags interval; auto-merge}  # allow_rkn.nft
+    set deny_my {type ipv4_addr; flags interval; auto-merge}    # deny_my.nft
+    set deny_rkn {type ipv4_addr; flags interval; auto-merge}   # by get-rkn parser tool
+
+    chain FORWARD {
+        type filter hook forward priority filter; policy accept;
+        oifname "docker0" counter meta l4proto { tcp, udp } th sport 53 mark != 1 counter queue num 100-103 fanout comment "RKN DNS answers"
+        iifname "docker0" counter jump CHECK_SETS
+    }
+
+    chain CHECK_SETS {
+        ip daddr @allow_my return
+        ip daddr @allow_rkn return
+
+        ip daddr @deny_my jump REJECT
+        ip daddr @deny_rkn jump REJECT
+
+        ip daddr @allow_sniffed return
+
+        jump REJECT
+    }
+
+    chain REJECT {
+        meta l4proto tcp reject with tcp reset comment "RKN reject TCP"
+        meta l4proto udp reject comment "RKN reject UDP"
+        meta l4proto icmp reject with icmp type host-prohibited comment "RKN reject ICMP"
+    }
+}
