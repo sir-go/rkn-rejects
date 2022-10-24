@@ -6,22 +6,22 @@ the host and uplink.
 
 ### Utilities
 
- - [get_rkn](cmd/get_rkn/README.md)
+ - [get_rkn](cmd/get_rkn)
 
     SOAP-client for [RKN service](https://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl), 
     gets b/w lists, parses them and fills the redis cache.
     
- - [dns-sniffer](cmd/dns-sniffer/README.md)
+ - [dns-sniffer](cmd/dns-sniffer)
 
     watches all DNS traffic, collects A-records, and checks resolved hosts by b/w lists.
     
     If the record in the answer is not denied then it puts to the white IP list with resolved TTL.
 
- - [dpi-sniffer](cmd/dpi-sniffer/README.md)
+ - [dpi-sniffer](cmd/dpi-sniffer)
 
     sniffs all traffic and for denied IP or hostname detection.
 
- - [check](cmd/check/README.md)
+ - [check](cmd/check)
 
     the testing tool for regularly checking the quality of other parts working. It gets the 
     accessibility of hosts by their list in Redis, runs goroutines with HTTP-clients, and collects status codes.
