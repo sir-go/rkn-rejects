@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"net"
 	"time"
 
 	"github.com/florianl/go-nfqueue"
@@ -12,48 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"rkn-rejects/internal/fw"
+	"rkn-rejects/internal/tools"
 )
-
-// ipInSubnets check if the IP address is found in the subnets
-// return the boolean (found IP or not) and the subnet that contains the given IP as a string
-func ipInSubnets(ip net.IP, subnets []*net.IPNet) (bool, string) {
-	for _, sn := range subnets {
-		if sn.Contains(ip) {
-			return true, sn.String()
-		}
-	}
-	return false, ""
-}
-
-// getUpperDomains returns a list of all upper domains of the given hostname
-func getUpperDomains(d string) (res []string) {
-	var dotIndexes []int
-	for idx, r := range d {
-		if r == '.' {
-			dotIndexes = append(dotIndexes, idx)
-		}
-	}
-	for i := len(dotIndexes) - 2; i > -1; i-- {
-		res = append(res, d[dotIndexes[i]+1:])
-	}
-	return append(res, d)
-}
-
-// isHostDenied checks the hostname and all of the upper domains if any of them is in the denied list
-func isHostDenied(h string, rdb *redis.Client) bool {
-	ctx := context.Background()
-	for _, ud := range getUpperDomains(h) {
-		rRes := rdb.SIsMember(ctx, CFG.Redis.SetKey, ud)
-		if err := rRes.Err(); err != nil {
-			log.Errorln("redis sismember", CFG.Redis.SetKey, err)
-			return false
-		}
-		if rRes.Val() {
-			return true
-		}
-	}
-	return false
-}
 
 // queue processing function
 // packetsHook gets DNS answer packet from NF, parses it, checks if the hostname denied,
@@ -87,7 +45,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 	questedName := string(dns.Questions[0].Name)
 
 	// checks if the hostname is denied
-	isDenied := isHostDenied(questedName, rdb)
+	isDenied := tools.IsHostDenied(questedName, rdb, CFG.Redis.SetKey)
 
 	// check if IP in bogus networks, add to allowed cache if host isn't denied, and remove if it is
 	for _, answer := range dns.Answers {
@@ -96,7 +54,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 		}
 
 		// if the IP in bogus networks - skip it
-		if bogus, bNet := ipInSubnets(answer.IP, BogusSubnets); bogus {
+		if bogus, bNet := tools.IpInSubnets(answer.IP, BogusSubnets); bogus {
 			log.Debugf("DNS Q: %s A: bogus IP: %s [in %s]",
 				questedName, answer.IP.String(), bNet)
 			continue

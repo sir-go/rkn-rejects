@@ -7,6 +7,12 @@
 - if IP address is denied or found a denied hostname then the packet marks as "bad"
   end returns to the firewall (it will be rejected)
 
+## Tests
+```bash
+go test -v ./cmd/dpi-sniffer/...
+gosec ./cmd/dpi-sniffer/...
+```
+
 ### Build
 ```bash
 go mod download
