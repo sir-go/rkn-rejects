@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// regQ register queue processing function
 func regQ(q uint16, rc *redis.Client) {
 	config := nfqueue.Config{
 		NfQueue:      q,
@@ -26,12 +27,14 @@ func regQ(q uint16, rc *redis.Client) {
 		log.Panicln("nfqueue opening", err)
 	}
 
+	// add queue closing to teardowns
 	td = append(td, func() {
 		if e := nf.Close(); e != nil {
 			log.Errorln("nfqueue closing", err)
 		}
 	})
 
+	// create nf_queue processing function
 	fn := func(a nfqueue.Attribute) int {
 		m := CFG.MarkDone
 		if packetsHook(a, rc) {
@@ -44,6 +47,9 @@ func regQ(q uint16, rc *redis.Client) {
 		}
 		return 0
 	}
+
+	// register queue processing function
+	log.Debugln("register hook func...")
 	err = nf.RegisterWithErrorFunc(
 		context.Background(), fn, func(e error) int { return 1 })
 	if err != nil {
@@ -52,7 +58,20 @@ func regQ(q uint16, rc *redis.Client) {
 }
 
 func main() {
+
+	// init running flags
+
+	CFG = initConfig()
+	if CFG.LogLevel != "debug" {
+		logLevel, err := log.ParseLevel(CFG.LogLevel)
+		if err != nil {
+			log.Panic("parsing LogLevel error")
+		}
+		log.SetLevel(logLevel)
+	}
 	defer log.Warn("-- done --")
+
+	// setup Redis connection
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:        fmt.Sprintf("%s:%d", CFG.Redis.Host, CFG.Redis.Port),
@@ -66,6 +85,8 @@ func main() {
 			log.Errorln("redis connection closing", err.Error())
 		}
 	}()
+
+	// run nf queue processors
 
 	for _, qn := range CFG.Queues {
 		go regQ(qn, rdb)

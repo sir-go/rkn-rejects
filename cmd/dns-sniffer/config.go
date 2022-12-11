@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"rkn-rejects/internal/tools"
 )
 
 type (
@@ -65,35 +65,6 @@ func (c *Cfg) String() string {
 	return string(b)
 }
 
-// parseRange unwraps numbers range contained string to the given slice
-// 100-103 -> [100 101 102 103]
-func parseRange(s string, a *[]uint16) {
-	var (
-		v0, v1 uint64
-		err    error
-	)
-	if !strings.ContainsRune(s, '-') {
-		v0, err = strconv.ParseUint(s, 10, 16)
-		if err != nil {
-			log.Panicln("range parsing error:", err.Error())
-		}
-		*a = []uint16{uint16(v0)}
-		return
-	}
-
-	p := strings.Split(s, "-")
-	if v0, err = strconv.ParseUint(p[0], 10, 16); err != nil {
-		log.Panicln("range begin parsing error:", err.Error())
-	}
-	if v1, err = strconv.ParseUint(p[1], 10, 16); err != nil {
-		log.Panicln("range end parsing error:", err.Error())
-	}
-	for v0 <= v1 {
-		*a = append(*a, uint16(v0))
-		v0++
-	}
-}
-
 func initConfig() *Cfg {
 	var (
 		queuesStr string
@@ -144,7 +115,9 @@ func initConfig() *Cfg {
 
 	flag.Parse()
 
-	parseRange(queuesStr, &cfg.Queues)
+	if err := tools.ParseRange(queuesStr, &cfg.Queues); err != nil {
+		panic(err)
+	}
 	cfg.QMaxLen = uint32(qMaxLen)
 	log.Info(cfg)
 	if cfg.Dry {

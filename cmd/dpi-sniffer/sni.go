@@ -10,6 +10,7 @@ type TLSPayload struct {
 	pos int
 }
 
+// GetLenW returns the value of the len-word
 func (tp *TLSPayload) GetLenW() (int, error) {
 	if tp.len < tp.pos+2 {
 		return 0, fmt.Errorf("too small payload len (%d)", tp.len)
@@ -20,6 +21,7 @@ func (tp *TLSPayload) GetLenW() (int, error) {
 	return (b1 << 8) + b2, nil
 }
 
+// GetLenB returns the value of the len-byte
 func (tp *TLSPayload) GetLenB() (int, error) {
 	if tp.len < tp.pos+1 {
 		return 0, fmt.Errorf("too small payload len (%d)", tp.len)
@@ -28,6 +30,7 @@ func (tp *TLSPayload) GetLenB() (int, error) {
 	return int(tp.raw[tp.pos-1]), nil
 }
 
+// Skip moves the pos pointer to n bytes forward
 func (tp *TLSPayload) Skip(n int) error {
 	if tp.len < tp.pos+n {
 		return fmt.Errorf("too small payload len (%d)", tp.len)
@@ -36,6 +39,7 @@ func (tp *TLSPayload) Skip(n int) error {
 	return nil
 }
 
+// GetString returns the data from current pos to n of payload as a string
 func (tp *TLSPayload) GetString(n int) (res string, err error) {
 	if tp.len < tp.pos+n {
 		return "", fmt.Errorf("too small payload len (%d)", tp.len)
@@ -45,6 +49,8 @@ func (tp *TLSPayload) GetString(n int) (res string, err error) {
 	return
 }
 
+// GetSNIForced parses the packet payload as TLS handshake packet
+// and grabs the SNI server_name values if it presents
 func GetSNIForced(d []byte) (sni string, err error) {
 	// SessionIdLength offset = 43
 	pl := TLSPayload{len: len(d), raw: d, pos: 43}
