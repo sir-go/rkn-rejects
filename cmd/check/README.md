@@ -1,4 +1,5 @@
 # Check
+[![Go](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml)
 
 ## What it does
 - get targets for checking from the redis set

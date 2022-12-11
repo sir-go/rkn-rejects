@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// regQ register queue processing function
 func regQ(q uint16, rdb *redis.Client, ac *AllowsCache) {
 	config := nfqueue.Config{
 		NfQueue:      q,
@@ -27,12 +28,14 @@ func regQ(q uint16, rdb *redis.Client, ac *AllowsCache) {
 		log.Panicln("nfqueue opening", err)
 	}
 
+	// add queue closing to teardowns
 	td = append(td, func() {
 		if e := nf.Close(); e != nil {
 			log.Errorln("nfqueue closing", err)
 		}
 	})
 
+	// create nf_queue processing function
 	fn := func(a nfqueue.Attribute) int {
 		packetsHook(a, rdb, ac)
 		err = nf.SetVerdictWithMark(*a.PacketID, nfqueue.NfRepeat, CFG.MarkDone)
@@ -43,6 +46,8 @@ func regQ(q uint16, rdb *redis.Client, ac *AllowsCache) {
 		}
 		return 0
 	}
+
+	// register queue processing function
 	log.Debugln("register hook func...")
 	err = nf.RegisterWithErrorFunc(
 		context.Background(), fn, func(e error) int { return 1 })
@@ -52,8 +57,19 @@ func regQ(q uint16, rdb *redis.Client, ac *AllowsCache) {
 }
 
 func main() {
+	CFG = initConfig()
+
+	// set logging params
+	if CFG.LogLevel != "debug" {
+		logLevel, err := log.ParseLevel(CFG.LogLevel)
+		if err != nil {
+			log.Panic("parsing LogLevel error")
+		}
+		log.SetLevel(logLevel)
+	}
 	defer log.Warn("-- done --")
 
+	// setup Redis connection
 	log.Debugln("make redis client...")
 	rdb := redis.NewClient(&redis.Options{
 		Addr:        fmt.Sprintf("%s:%d", CFG.Redis.Host, CFG.Redis.Port),
@@ -68,9 +84,13 @@ func main() {
 		}
 	}()
 
+	// create captured answers caching
 	allows := NewAllows(rdb, "allows")
+
+	// recheck records live times and cleanup
 	go allows.RunSanitizer(time.Second * 5)
 
+	// run nf queue processors
 	for _, qn := range CFG.Queues {
 		go regQ(qn, rdb, allows)
 	}

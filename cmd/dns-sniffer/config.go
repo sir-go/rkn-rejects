@@ -13,10 +13,17 @@ import (
 
 type (
 	Cfg struct {
-		Queues   []uint16 `json:"queues,omitempty"`
-		QMaxLen  uint32   `json:"q_max_len,omitempty"`
-		MarkDone int      `json:"mark,omitempty"`
-		Redis    struct {
+		// nf queue IDs
+		Queues []uint16 `json:"queues,omitempty"`
+
+		// maximum queue capacity
+		QMaxLen uint32 `json:"q_max_len,omitempty"`
+
+		// 'done' packet marker ID
+		MarkDone int `json:"mark,omitempty"`
+
+		// redis db connection parameters
+		Redis struct {
 			Host        string        `json:"host,omitempty"`
 			Port        int           `json:"port,omitempty"`
 			Password    string        `json:"-,omitempty"`
@@ -25,15 +32,22 @@ type (
 			TimeoutConn time.Duration `json:"timeout_conn,omitempty"`
 			TimeoutRead time.Duration `json:"timeout_read,omitempty"`
 		} `json:"redis"`
+
+		// logging level
 		LogLevel string `json:"log_level,omitempty"`
-		Dry      bool   `json:"dry,omitempty"`
-		Nf       struct {
+
+		// just configure and exit
+		Dry bool `json:"dry,omitempty"`
+
+		// netfilter configuration
+		Nf struct {
 			Table   string `json:"table,omitempty"`
 			SetName string `json:"set_name,omitempty"`
 		} `json:"nf,omitempty"`
 	}
 )
 
+// Config stringer
 func (c *Cfg) String() string {
 	var (
 		b   []byte
@@ -51,6 +65,7 @@ func (c *Cfg) String() string {
 	return string(b)
 }
 
+// parseRange unwraps numbers range contained string to the given slice
 // 100-103 -> [100 101 102 103]
 func parseRange(s string, a *[]uint16) {
 	var (

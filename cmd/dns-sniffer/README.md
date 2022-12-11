@@ -1,21 +1,26 @@
-## DNS sniffer
+# DNS sniffer
 
-### What it does
-
+## What it does
 - read all DNS answer packets from `nf_qeueue`
 - check a hostname in the answer
 - add IPs from A-record to the allowed nftables set with TTL if all 
   IP addresses in the answer and
   the hostname are not found in the denied lists
 
-### Build
+## Tests
+```bash
+go test -v ./cmd/dns-sniffer/...
+gosec ./cmd/dns-sniffer/...
+```
+
+## Build
 ```bash
 go mod download
 go build -o dns ./cmd/dns-sniffer;
 ```
 
+## Run
 ### Flags
-
 | key    | default       | description                          |
 |--------|---------------|--------------------------------------|
 | -nfq   | 100-103       | nf queue num range                   |
