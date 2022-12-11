@@ -1,4 +1,4 @@
-name: Go Test cmd/dns-sniffer
+name: Go Test cmd/dpi-sniffer
 
 on:
   push:
