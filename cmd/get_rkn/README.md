@@ -1,5 +1,6 @@
 # get_rkn
-  
+[![Go Test cmd/get-rkn](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml)
+
 [CryptoPRO](https://www.cryptopro.ru/products/csp/downloads) for sign requests is required.
 
 SSH tuning `.ssh/config`

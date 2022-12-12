@@ -1,4 +1,5 @@
 # DNS sniffer
+[![Go Test cmd/dns](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml)
 
 ## What it does
 - read all DNS answer packets from `nf_qeueue`

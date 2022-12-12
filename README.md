@@ -1,4 +1,9 @@
 # DNS/DPI sniffers and NFT-tables rules
+[![Go Test cmd/checks](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml)
+[![Go Test cmd/dns](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml)
+[![Go Test cmd/dpi](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml)
+[![Go Test cmd/get-rkn](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml)
+
 
 The parental control project contains four utilities to get white and black lists from RKN service and 
 completely isolate one certain host from denied resources. Utilities installed at the router between

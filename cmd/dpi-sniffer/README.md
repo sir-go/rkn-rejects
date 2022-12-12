@@ -1,6 +1,7 @@
-## DPI sniffer
+# DPI sniffer
+[![Go Test cmd/dpi](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml)
 
-### What it does
+## What it does
 
 - read all packets from `nf_qeueue`
 - check TLS SNI extension, HTTP headers, and the payload of packet
