@@ -1,11 +1,15 @@
-## DNS/DPI sniffers and NFT-tables rules
+# DNS/DPI sniffers and NFT-tables rules
+[![Go Test cmd/checks](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-check.yml)
+[![Go Test cmd/dns](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dns.yml)
+[![Go Test cmd/dpi](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-dpi.yml)
+[![Go Test cmd/get-rkn](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml/badge.svg)](https://github.com/sir-go/rkn-rejects/actions/workflows/go-get-rkn.yml)
+
 
 The parental control project contains four utilities to get white and black lists from RKN service and 
 completely isolate one certain host from denied resources. Utilities installed at the router between
 the host and uplink.
 
-### Utilities
-
+## Utilities
  - [get_rkn](cmd/get_rkn)
 
     SOAP-client for [RKN service](https://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl), 
@@ -28,8 +32,7 @@ the host and uplink.
 
     It can be run from the docker container for routing all traffic through the router's firewall.
 
-### NF-tables
-
+## NF-tables
 Traffic to sniffers redirects by the `nf_queue` kernel module. All traffic rejects by default 
 except DNS requests and answers. NF-tables rules have a list of allowed IP addresses. 
 Every record in the list has a TTL and deletes when this time is expired.

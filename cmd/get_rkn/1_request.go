@@ -1,5 +1,7 @@
 package main
 
+// Soap request building and send
+
 import (
 	"encoding/base64"
 	"fmt"
@@ -16,6 +18,7 @@ import (
 )
 
 type (
+	// SResReq - `sendRequest` response structure
 	SResReq struct {
 		Result  bool   `xml:"result"`
 		Comment string `xml:"resultComment"`
@@ -23,8 +26,9 @@ type (
 	}
 )
 
+// genRequest builds an XML request and stores it to the file
 func genRequest() {
-	log.Info("gen rewuest")
+	log.Info("gen request")
 	var err error
 	req := fmt.Sprintf(
 		`<?xml version="1.0" encoding="windows-1251"?>
@@ -46,10 +50,10 @@ func genRequest() {
 	dumpTo(&CFG.Req.File, req, "dump request XML to:")
 }
 
+// sign calls a request file signing external process
 func sign() {
 	log.Info("sign request")
-	//goland:noinspection SpellCheckingInspection
-	cmd := exec.Command(CFG.Sign.Script)
+	cmd := exec.Command(CFG.Sign.Script) //#nosec
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	log.Debug(cmd)
@@ -58,9 +62,10 @@ func sign() {
 	}
 }
 
+// sendRequest makes a request to the API and gets a scheduled task ID
 func sendRequest() (taskId string) {
 	log.Info("send request")
-	httpClient := &http.Client{Timeout: CFG.Web.TcpTimeout.Duration}
+	httpClient := &http.Client{Timeout: CFG.Web.TcpTimeout}
 	defer func() { httpClient.CloseIdleConnections() }()
 
 	soap, err := gosoap.SoapClient(CFG.Web.SoapUrl, httpClient)
@@ -81,7 +86,7 @@ func sendRequest() (taskId string) {
 	soapResp := new(gosoap.Response)
 	err = retry(
 		CFG.Web.Attempts,
-		time.Second*CFG.Web.TcpTimeout.Duration,
+		time.Second*CFG.Web.TcpTimeout,
 		func() error {
 			soapResp, err = soap.Call("sendRequest", gosoap.Params{
 				"requestFile":       base64.StdEncoding.EncodeToString(req),

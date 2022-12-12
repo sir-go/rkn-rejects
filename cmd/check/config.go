@@ -1,5 +1,7 @@
 package main
 
+// Running configuration. Parses running flags to the config struct.
+
 import (
 	"encoding/json"
 	"flag"
@@ -9,16 +11,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// WorkersMax - hardcoded maximum amount of checkers
 const WorkersMax = 75
 
 type (
+	// Cfg stores the whole running configuration
 	Cfg struct {
-		Workers     int           `json:"workers,omitempty"`
-		Sleeps      time.Duration `json:"sleeps,omitempty"`
-		Max         int           `json:"limit,omitempty"`
-		Timeout     time.Duration `json:"timeout,omitempty"`
+		// checking workers amount
+		Workers int `json:"workers,omitempty"`
+
+		// pause between checks for the worker
+		Sleeps time.Duration `json:"sleeps,omitempty"`
+
+		// maximum amount of targets to check (limits the target list)
+		Max int `json:"limit,omitempty"`
+
+		// timeout for the response for each target
+		Timeout time.Duration `json:"timeout,omitempty"`
+
+		// how often to store the buffered log
 		LogInterval time.Duration `json:"log_interval,omitempty"`
-		Redis       struct {
+
+		// redis b connection parameters
+		Redis struct {
 			Host        string        `json:"host,omitempty"`
 			Port        int           `json:"port,omitempty"`
 			Password    string        `json:"-,omitempty"`
@@ -27,9 +42,12 @@ type (
 			TimeoutConn time.Duration `json:"timeout_conn,omitempty"`
 			TimeoutRead time.Duration `json:"timeout_read,omitempty"`
 		} `json:"redis"`
-		Out            string `json:"out,omitempty"`
+
+		// path of the directory to store verdicts
 		VerdictsOutDir string `json:"verdicts_out_dir,omitempty"`
-		LogLevel       string `json:"log_level,omitempty"`
+
+		// logging level
+		LogLevel string `json:"log_level,omitempty"`
 	}
 )
 
@@ -64,10 +82,10 @@ func initConfig() *Cfg {
 		"redis set key for checks")
 
 	flag.DurationVar(&cfg.Redis.TimeoutConn, "rtc", time.Second*15,
-		"radis connection timeout")
+		"redis connection timeout")
 
 	flag.DurationVar(&cfg.Redis.TimeoutRead, "rtr", time.Second*15,
-		"radis read timeout")
+		"redis read timeout")
 
 	flag.StringVar(&cfg.LogLevel, "log", "info",
 		"log level [panic < fatal < error < warn < info < debug < trace]")
@@ -86,9 +104,6 @@ func initConfig() *Cfg {
 
 	flag.DurationVar(&cfg.LogInterval, "lt", time.Second*10,
 		"log progress interval")
-
-	flag.StringVar(&cfg.Out, "o", "stdout",
-		"buffered log file path")
 
 	flag.StringVar(&cfg.VerdictsOutDir, "d", "/tmp/",
 		"directory for per-record verdict logs")

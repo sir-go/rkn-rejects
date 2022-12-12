@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"net"
 	"time"
 
 	"github.com/florianl/go-nfqueue"
@@ -12,47 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"rkn-rejects/internal/fw"
+	"rkn-rejects/internal/tools"
 )
 
-func ipInSubnets(ip net.IP, subnets []*net.IPNet) (bool, string) {
-	for _, sn := range subnets {
-		if sn.Contains(ip) {
-			return true, sn.String()
-		}
-	}
-	return false, ""
-}
-
-func getUpperDomains(d string) (res []string) {
-	var dotIndexes []int
-	for idx, r := range d {
-		if r == '.' {
-			dotIndexes = append(dotIndexes, idx)
-		}
-	}
-	for i := len(dotIndexes) - 2; i > -1; i-- {
-		res = append(res, d[dotIndexes[i]+1:])
-	}
-	return append(res, d)
-}
-
-func isHostDenied(h string, rdb *redis.Client) bool {
-	ctx := context.Background()
-	for _, ud := range getUpperDomains(h) {
-		rRes := rdb.SIsMember(ctx, CFG.Redis.SetKey, ud)
-		if err := rRes.Err(); err != nil {
-			log.Errorln("redis sismember", CFG.Redis.SetKey, err)
-			return false
-		}
-		if rRes.Val() {
-			return true
-		}
-	}
-	return false
-}
-
+// queue processing function
+// packetsHook gets DNS answer packet from NF, parses it, checks if the hostname denied,
+// then checks if resolved IP addresses in the allowed IP addresses cache,
+// if the host is denied and IP in the allowed cache - remove IP fromm the cache,
+// if the host isn't denied and the cache hasn't it's IP - add IP to the cache
 func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
-	//log.Debugln("packetID: ", *a.PacketID)
 	p := gopacket.NewPacket(*a.Payload, layers.LayerTypeIPv4,
 		gopacket.DecodeOptions{
 			Lazy:                     true,
@@ -61,6 +27,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 			DecodeStreamsAsDatagrams: true,
 		})
 
+	// parse the packet as DNS answer
 	l7 := p.ApplicationLayer()
 	if l7 == nil {
 		return
@@ -76,14 +43,18 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 	}
 
 	questedName := string(dns.Questions[0].Name)
-	isDenied := isHostDenied(questedName, rdb)
 
+	// checks if the hostname is denied
+	isDenied := tools.IsHostDenied(questedName, rdb, CFG.Redis.SetKey)
+
+	// check if IP in bogus networks, add to allowed cache if host isn't denied, and remove if it is
 	for _, answer := range dns.Answers {
 		if answer.Type != layers.DNSTypeA {
 			continue
 		}
 
-		if bogus, bNet := ipInSubnets(answer.IP, BogusSubnets); bogus {
+		// if the IP in bogus networks - skip it
+		if bogus, bNet := tools.IpInSubnets(answer.IP, BogusSubnets); bogus {
 			log.Debugf("DNS Q: %s A: bogus IP: %s [in %s]",
 				questedName, answer.IP.String(), bNet)
 			continue
@@ -95,9 +66,13 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 			Comment: questedName,
 		}
 
+		// check if cache already has the IP
 		inCache := ac.Has(el.Ip)
 		if isDenied {
 			if inCache {
+
+				// host is denied and the IP is in the allowed addresses cache - remove it
+
 				log.Infoln("bad : ", questedName)
 				if err := fw.Del(CFG.Nf.Table, CFG.Nf.SetName, el); err != nil {
 					log.Error(err)
@@ -108,6 +83,9 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client, ac *AllowsCache) {
 			}
 		} else {
 			if !inCache {
+
+				// host is not denied and the IP is not in the allowed addresses cache - add it
+
 				log.Infoln("good: ", questedName)
 				if err := fw.Add(CFG.Nf.Table, CFG.Nf.SetName, el); err != nil {
 					log.Error(err)

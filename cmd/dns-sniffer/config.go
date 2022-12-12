@@ -4,19 +4,26 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"rkn-rejects/internal/tools"
 )
 
 type (
 	Cfg struct {
-		Queues   []uint16 `json:"queues,omitempty"`
-		QMaxLen  uint32   `json:"q_max_len,omitempty"`
-		MarkDone int      `json:"mark,omitempty"`
-		Redis    struct {
+		// nf queue IDs
+		Queues []uint16 `json:"queues,omitempty"`
+
+		// maximum queue capacity
+		QMaxLen uint32 `json:"q_max_len,omitempty"`
+
+		// 'done' packet marker ID
+		MarkDone int `json:"mark,omitempty"`
+
+		// redis db connection parameters
+		Redis struct {
 			Host        string        `json:"host,omitempty"`
 			Port        int           `json:"port,omitempty"`
 			Password    string        `json:"-,omitempty"`
@@ -25,15 +32,22 @@ type (
 			TimeoutConn time.Duration `json:"timeout_conn,omitempty"`
 			TimeoutRead time.Duration `json:"timeout_read,omitempty"`
 		} `json:"redis"`
+
+		// logging level
 		LogLevel string `json:"log_level,omitempty"`
-		Dry      bool   `json:"dry,omitempty"`
-		Nf       struct {
+
+		// just configure and exit
+		Dry bool `json:"dry,omitempty"`
+
+		// netfilter configuration
+		Nf struct {
 			Table   string `json:"table,omitempty"`
 			SetName string `json:"set_name,omitempty"`
 		} `json:"nf,omitempty"`
 	}
 )
 
+// Config stringer
 func (c *Cfg) String() string {
 	var (
 		b   []byte
@@ -49,34 +63,6 @@ func (c *Cfg) String() string {
 		return ""
 	}
 	return string(b)
-}
-
-// 100-103 -> [100 101 102 103]
-func parseRange(s string, a *[]uint16) {
-	var (
-		v0, v1 uint64
-		err    error
-	)
-	if !strings.ContainsRune(s, '-') {
-		v0, err = strconv.ParseUint(s, 10, 16)
-		if err != nil {
-			log.Panicln("range parsing error:", err.Error())
-		}
-		*a = []uint16{uint16(v0)}
-		return
-	}
-
-	p := strings.Split(s, "-")
-	if v0, err = strconv.ParseUint(p[0], 10, 16); err != nil {
-		log.Panicln("range begin parsing error:", err.Error())
-	}
-	if v1, err = strconv.ParseUint(p[1], 10, 16); err != nil {
-		log.Panicln("range end parsing error:", err.Error())
-	}
-	for v0 <= v1 {
-		*a = append(*a, uint16(v0))
-		v0++
-	}
 }
 
 func initConfig() *Cfg {
@@ -129,7 +115,9 @@ func initConfig() *Cfg {
 
 	flag.Parse()
 
-	parseRange(queuesStr, &cfg.Queues)
+	if err := tools.ParseRange(queuesStr, &cfg.Queues); err != nil {
+		panic(err)
+	}
 	cfg.QMaxLen = uint32(qMaxLen)
 	log.Info(cfg)
 	if cfg.Dry {

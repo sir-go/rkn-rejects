@@ -22,12 +22,10 @@ func (l *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	), nil
 }
 
-func init() {
+func initLogging() {
 	log.SetReportCaller(true)
 	log.SetFormatter(&LogFormat{})
 	log.SetLevel(log.DebugLevel)
-	CFG = initConfig()
-
 	if CFG.LogLevel != "debug" {
 		logLevel, err := log.ParseLevel(CFG.LogLevel)
 		if err != nil {
@@ -38,6 +36,8 @@ func init() {
 }
 
 func main() {
+	CFG = initConfig()
+	initLogging()
 	defer log.Println("--done--")
 
 	var dumpData []byte

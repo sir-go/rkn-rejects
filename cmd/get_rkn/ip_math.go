@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ipInSubnets checks if the IP address is in the subnets slice and returns a boolean (found or not)
+//and the subnet as a string where this IP address has been found
 func ipInSubnets(ip net.IP, subnets []Net) (bool, string) {
 	for _, sn := range subnets {
 		if sn.Contains(ip) {
@@ -17,14 +19,17 @@ func ipInSubnets(ip net.IP, subnets []Net) (bool, string) {
 	return false, ""
 }
 
+// ipInBogusSubnet check if the defined in the configuration bogus networks contain the given IP address
 func ipInBogusSubnet(ip net.IP) bool {
 	if b, sn := ipInSubnets(ip, CFG.Parse.BogusIp.Subnets); b {
-		log.Warnln("%s in bogus subnet %s -> skip", ip, sn)
+		log.Warnf("%s in bogus subnet %s -> skip", ip, sn)
 		return b
 	}
 	return false
 }
 
+// CIDRHosts composites the given CIDR to a slice of hosts (IP strings)
+// "10.0.0.12/30 -> 10.0.0.12/32, 10.0.0.13/32, 10.0.0.14/32, 10.0.0.15/32,
 func CIDRHosts(cidr string) (hosts []string) {
 	// it's IP address
 	if !strings.ContainsRune(cidr, '/') {

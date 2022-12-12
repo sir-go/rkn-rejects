@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"regexp"
 	"strings"
 
@@ -10,43 +9,24 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	log "github.com/sirupsen/logrus"
+
+	"rkn-rejects/internal/tools"
 )
 
 //goland:noinspection SpellCheckingInspection
 var (
+	// ReLooksLikeDomain matches strings tooks like domain name
 	ReLooksLikeDomain = regexp.MustCompile(`([a-zA-Z]+[a-zA-Z0-9._-]*\.)+([a-zA-Z]+[a-zA-Z0-9._-]*)`)
-	ReHostname        = regexp.MustCompile(`(?i)host:\s([^:/?#\s]+).*\s`)
-	ReHTTP            = regexp.MustCompile(`^(GET|POST|PUT|PATCH|DELETE|TRACE|CONNECT|HEAD|OPTIONS)\s`)
+
+	// ReHostname matches strings tooks like host name
+	ReHostname = regexp.MustCompile(`(?i)host:\s([^:/?#\s]+).*\s`)
+
+	// ReHTTP matches strings tooks like HTTP header
+	ReHTTP = regexp.MustCompile(`^(GET|POST|PUT|PATCH|DELETE|TRACE|CONNECT|HEAD|OPTIONS)\s`)
 )
 
-func getUpperDomains(d string) (res []string) {
-	var dotIndexes []int
-	for idx, r := range d {
-		if r == '.' {
-			dotIndexes = append(dotIndexes, idx)
-		}
-	}
-	for i := len(dotIndexes) - 2; i > -1; i-- {
-		res = append(res, d[dotIndexes[i]+1:])
-	}
-	return append(res, d)
-}
-
-func isHostDenied(h string, rdb *redis.Client) bool {
-	ctx := context.Background()
-	for _, ud := range getUpperDomains(h) {
-		rRes := rdb.SIsMember(ctx, CFG.Redis.SetKey, ud)
-		if err := rRes.Err(); err != nil {
-			log.Errorln("redis sismember", CFG.Redis.SetKey, err)
-			return false
-		}
-		if rRes.Val() {
-			return true
-		}
-	}
-	return false
-}
-
+// snatchRegexp gets a host or domain name from the given slice
+// pos argument sets a position in the matched results
 func snatchRegexp(b []byte, re *regexp.Regexp, pos int) (s string) {
 	if reResult := re.FindSubmatch(b); reResult != nil && len(reResult) > 1 {
 		return strings.TrimRightFunc(string(reResult[pos]), func(r rune) bool { return r == '.' })
@@ -54,17 +34,22 @@ func snatchRegexp(b []byte, re *regexp.Regexp, pos int) (s string) {
 	return ""
 }
 
+// packetsHook - nf queue packet processor
 func packetsHook(a nfqueue.Attribute, rdb *redis.Client) bool {
+
+	// nf verdicts mapping
 	const (
 		accept = false
 		reject = true
 	)
 
+	// if -x (rejects all) flag is set - reject the packet without any checks
 	if CFG.RejectAll {
 		log.Warn("R-ALL: any =>X any")
 		return reject
 	}
 
+	// parse the packet as IPv4
 	p := gopacket.NewPacket(*a.Payload, layers.LayerTypeIPv4, gopacket.DecodeOptions{
 		Lazy:                     true,
 		NoCopy:                   true,
@@ -90,7 +75,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client) bool {
 	//log.Debugln("check TLS")
 	var hostname string
 	if hostname, _ = GetSNIForced(p.TransportLayer().LayerPayload()); len(hostname) > 1 {
-		if !isHostDenied(hostname, rdb) {
+		if !tools.IsHostDenied(hostname, rdb, CFG.Redis.SetKey) {
 			log.Debugf("TLS : %-15s ==> %s", srcIP, hostname)
 			return accept
 		}
@@ -101,7 +86,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client) bool {
 	// check HTTP hostname
 	//log.Debugln("check hostname")
 	if hostname = snatchRegexp(*a.Payload, ReHostname, 1); hostname != "" {
-		if !isHostDenied(hostname, rdb) {
+		if !tools.IsHostDenied(hostname, rdb, CFG.Redis.SetKey) {
 			log.Debugf("HTTP: %-15s ==> %s", srcIP, hostname)
 			return accept
 		}
@@ -119,7 +104,7 @@ func packetsHook(a nfqueue.Attribute, rdb *redis.Client) bool {
 	// DPI seek anything looks like domain name
 	//log.Debugln("check DPI")
 	if hostname = snatchRegexp(*a.Payload, ReLooksLikeDomain, 0); hostname != "" {
-		if !isHostDenied(hostname, rdb) {
+		if !tools.IsHostDenied(hostname, rdb, CFG.Redis.SetKey) {
 			log.Debugf("DPI : %-15s ==> %s", srcIP, hostname)
 			return accept
 		}

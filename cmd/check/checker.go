@@ -1,5 +1,7 @@
 package main
 
+// Checking target worker. Gets target from the channel, makes a request and issues a verdict
+
 import (
 	"io/ioutil"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 )
 
 type (
+	// is resource accessible
 	verdict struct {
 		opened bool
 		hash   string
@@ -20,15 +23,18 @@ type (
 	}
 )
 
+// uncommented rows in the list
 var reTarget = regexp.MustCompile(`^[^#]((.*)\|)?(.*://)?(.*)`)
 
+// dump saves a verdict to a file in the specified directory
 func (v *verdict) dump(vDir string) {
-	err := ioutil.WriteFile(path.Join(vDir, v.hash), v.raw, 0666)
+	err := ioutil.WriteFile(path.Join(vDir, v.hash), v.raw, 0600)
 	if err != nil {
 		log.Panicln("dump verdict", err)
 	}
 }
 
+// check does check the target address accessibility and returns a verdict struct
 func check(target string, timeout time.Duration) (v verdict) {
 	var (
 		err  error
@@ -60,8 +66,12 @@ func check(target string, timeout time.Duration) (v verdict) {
 	return
 }
 
-func Checker(wg *sync.WaitGroup, timeout time.Duration, targets <-chan string,
-	verdicts chan<- verdict) {
+// Checker starts a checking process, reads a target from the targets channel
+//and stores verdicts to the verdicts channel
+func Checker(wg *sync.WaitGroup, timeout time.Duration, targets <-chan string, verdicts chan<- verdict) {
+	if wg == nil {
+		return
+	}
 	for t := range targets {
 		verdicts <- check(t, timeout)
 		time.Sleep(CFG.Sleeps)

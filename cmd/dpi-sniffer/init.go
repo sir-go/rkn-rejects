@@ -22,8 +22,8 @@ func (l *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 }
 
 var (
-	CFG *Cfg
-	td  []func()
+	CFG *Cfg     // global config pointer
+	td  []func() // teardown callbacks array
 )
 
 func InitInterrupt() {
@@ -47,13 +47,4 @@ func init() {
 	log.SetFormatter(&LogFormat{})
 	log.SetLevel(log.DebugLevel)
 	InitInterrupt()
-	CFG = initConfig()
-
-	if CFG.LogLevel != "debug" {
-		logLevel, err := log.ParseLevel(CFG.LogLevel)
-		if err != nil {
-			log.Panic("parsing LogLevel error")
-		}
-		log.SetLevel(logLevel)
-	}
 }

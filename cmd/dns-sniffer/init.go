@@ -1,5 +1,7 @@
 package main
 
+// Initialize logging and interruptions.
+
 import (
 	"fmt"
 	"net"
@@ -23,9 +25,9 @@ func (l *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 }
 
 var (
-	CFG          *Cfg
-	BogusSubnets []*net.IPNet
-	td           []func()
+	CFG          *Cfg         // global config pointer
+	BogusSubnets []*net.IPNet // pointers to addresses of bogus networks
+	td           []func()     // teardown callbacks array
 )
 
 func InitInterrupt() {
@@ -49,16 +51,8 @@ func init() {
 	log.SetFormatter(&LogFormat{})
 	log.SetLevel(log.DebugLevel)
 	InitInterrupt()
-	CFG = initConfig()
 
-	if CFG.LogLevel != "debug" {
-		logLevel, err := log.ParseLevel(CFG.LogLevel)
-		if err != nil {
-			log.Panic("parsing LogLevel error")
-		}
-		log.SetLevel(logLevel)
-	}
-
+	// fill the bogus subnets array
 	for _, ipS := range []string{
 		"0.0.0.0/8",      // 0.0.0.0     - 0.255.255.255
 		"10.0.0.0/8",     // 10.0.0.0    - 10.255.255.255

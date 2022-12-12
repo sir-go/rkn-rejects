@@ -1,5 +1,7 @@
 package main
 
+// Initialize logging and interruptions.
+
 import (
 	"fmt"
 	"os"
@@ -22,8 +24,8 @@ func (l *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 }
 
 var (
-	CFG   *Cfg
-	lBuff LogBuff
+	CFG   *Cfg    // global config
+	lBuff LogBuff // buffered logging
 )
 
 func InitInterrupt(tearDown func()) {
@@ -52,13 +54,4 @@ func init() {
 	log.SetFormatter(&LogFormat{})
 	log.SetLevel(log.DebugLevel)
 	InitInterrupt(Stop)
-	CFG = initConfig()
-
-	if CFG.LogLevel != "debug" {
-		logLevel, err := log.ParseLevel(CFG.LogLevel)
-		if err != nil {
-			log.Panicln("parsing LogLevel error", err)
-		}
-		log.SetLevel(logLevel)
-	}
 }
