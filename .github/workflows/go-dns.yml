@@ -3,6 +3,9 @@ name: Go Test cmd/dns-sniffer
 on:
   push:
     branches: [ "*" ]
+    paths:
+      - cmd/dns-sniffer/**
+      - internal/**
   pull_request:
     branches: [ "main" ]
 

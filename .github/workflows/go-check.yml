@@ -3,6 +3,9 @@ name: Go Test cmd/checks
 on:
   push:
     branches: [ "*" ]
+    paths:
+      - cmd/checks/**
+      - internal/**
   pull_request:
     branches: [ "main" ]
 

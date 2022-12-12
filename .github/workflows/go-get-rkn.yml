@@ -1,8 +1,11 @@
-name: Go Test cmd/checks
+name: Go Test cmd/get_rkn
 
 on:
   push:
     branches: [ "*" ]
+    paths:
+      - cmd/get_rkn/**
+      - internal/**
   pull_request:
     branches: [ "main" ]
 

@@ -3,6 +3,9 @@ name: Go Test cmd/dpi-sniffer
 on:
   push:
     branches: [ "*" ]
+    paths:
+      - cmd/dpi-sniffer/**
+      - internal/**
   pull_request:
     branches: [ "main" ]
 
