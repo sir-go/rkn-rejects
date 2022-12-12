@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// dumpTo saves the given data to a file if the path is presented
 func dumpTo(path *string, data interface{}, decr string) {
 	if path == nil || *path == "" {
 		return

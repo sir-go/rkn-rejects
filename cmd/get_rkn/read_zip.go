@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ReadZip opens a zipDump bytes as a zip-file and returns a reader for the content
 func ReadZip(zipDump []byte) (r io.ReadCloser, size uint64) {
 	zipReader, err := zip.NewReader(
 		bytes.NewReader(zipDump), int64(len(zipDump)))

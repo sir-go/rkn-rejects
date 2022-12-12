@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// sanitizeConfLine removes from the given string spaces and comments
 func sanitizeConfLine(s string) string {
 	if s == "" {
 		return ""
@@ -23,8 +25,9 @@ func sanitizeConfLine(s string) string {
 	}
 }
 
+// includesReadDomains reads a file with domains, recode them and pushes to a string slice
 func includesReadDomains(path string) (d []string) {
-	fd, err := os.Open(path)
+	fd, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		log.Panicln("can't open domains file", err)
 	}

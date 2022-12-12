@@ -1,5 +1,7 @@
 package main
 
+// Fetching response as a zip-file bytes
+
 import (
 	"encoding/base64"
 	"errors"
@@ -11,6 +13,7 @@ import (
 )
 
 type (
+	// SResResult - `getResult` response structure
 	SResResult struct {
 		Result            bool    `xml:"result"`
 		Code              int     `xml:"resultCode"`
@@ -22,9 +25,11 @@ type (
 	}
 )
 
+// getResult continuously tries to fetch the result of the given task ID
+// stores the result to a file (if path is presented in the config) and returns a zip dump bytes
 func getResult(code string) (zipDump []byte) {
 	log.Info("get result")
-	httpClient := &http.Client{Timeout: CFG.Res.GetTimeout.Duration}
+	httpClient := &http.Client{Timeout: CFG.Res.GetTimeout}
 	defer func() { httpClient.CloseIdleConnections() }()
 
 	soap, err := gosoap.SoapClient(CFG.Web.SoapUrl, httpClient)
@@ -36,7 +41,7 @@ func getResult(code string) (zipDump []byte) {
 	soapResp := new(gosoap.Response)
 	err = retry(
 		CFG.Res.Attempts,
-		CFG.Res.RetryTimeout.Duration,
+		CFG.Res.RetryTimeout,
 		func() error {
 			soapResp, err = soap.Call("getResult",
 				gosoap.Params{"code": code})

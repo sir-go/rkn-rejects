@@ -1,4 +1,4 @@
-## get_rkn
+# get_rkn
   
 [CryptoPRO](https://www.cryptopro.ru/products/csp/downloads) for sign requests is required.
 
@@ -6,7 +6,7 @@ SSH tuning `.ssh/config`
 ```
 KexAlgorithms +diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
 ```
-### What it does
+## What it does
  - check versions of the service, dump and documentation
  - generate XML request, sign it and send to the service
  - get the request UUID and wait the result
@@ -15,17 +15,7 @@ KexAlgorithms +diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
  - fill the redis DB
  - generate and run script for configuring the firewall
 
-### Build
-```bash
-go mod download
-go build -o get_rkn rkn-rejects/cmd/get_rkn;
-```
-
-### Flags
-
-`-c <config file path>` - path to `*.toml` config file
-
-### Config
+## Config
 ```toml
 log_level = "debug"
 
@@ -99,7 +89,14 @@ log_level = "debug"
     ip_deny_set = "deny_rkn"                        # nftables denied addresses set name
 ```
 
-### Run
+## Build
+```bash
+go mod download
+go build -o get_rkn rkn-rejects/cmd/get_rkn;
+```
+## Run
 ```bash
 ./get_rkn -c rkn.toml
 ```
+## Flags
+`-c <config file path>` - path to `*.toml` config file (default is `rkn.toml`)

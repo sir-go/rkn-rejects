@@ -1,5 +1,7 @@
 package main
 
+// API and a documentation versions checking
+
 import (
 	"encoding/xml"
 	"net/http"
@@ -15,6 +17,7 @@ type (
 		time.Time
 	}
 
+	// SResVersion - `getLastDumpDateEx` response structure
 	SResVersion struct {
 		LastDumpDate         *TimestampMs `xml:"lastDumpDate"`
 		LastDumpDateUrgently *TimestampMs `xml:"lastDumpDateUrgently"`
@@ -24,6 +27,7 @@ type (
 	}
 )
 
+// UnmarshalXML parses an XML element to a time.Time contained struct
 func (p *TimestampMs) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v int64
 	if err := d.DecodeElement(&v, &start); err != nil {
@@ -33,20 +37,23 @@ func (p *TimestampMs) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 	return nil
 }
 
+// GetDumpVersion fetches an XML with API version info and returns structured data
 func GetDumpVersion() *SResVersion {
 	log.Println("get actual RKN service versions...")
-	httpClient := &http.Client{Timeout: CFG.Web.TcpTimeout.Duration}
+	httpClient := &http.Client{Timeout: CFG.Web.TcpTimeout}
 	defer func() { httpClient.CloseIdleConnections() }()
 
+	// create soap client
 	soap, err := gosoap.SoapClient(CFG.Web.SoapUrl, httpClient)
 	if err != nil {
 		log.Panicln("can't make soap client", err)
 	}
 
+	// make request & get response
 	soapResp := new(gosoap.Response)
 	err = retry(
 		CFG.Web.Attempts,
-		time.Second*CFG.Web.TcpTimeout.Duration,
+		time.Second*CFG.Web.TcpTimeout,
 		func() error {
 			soapResp, err = soap.Call("getLastDumpDateEx", nil)
 			return err
@@ -55,6 +62,7 @@ func GetDumpVersion() *SResVersion {
 		log.Panicln("can't call soap method getLastDumpDateEx", err)
 	}
 
+	// decode the answer
 	v := new(SResVersion)
 	if err = soapResp.Unmarshal(v); err != nil {
 		log.Panicln("can't unmarshal soap response", err)
@@ -63,6 +71,8 @@ func GetDumpVersion() *SResVersion {
 	return v
 }
 
+// CheckVersions compares fetched versions and given in the config.
+// If versions dont match - throw an error
 func CheckVersions() {
 	log.Info("check versions")
 	version := GetDumpVersion()
